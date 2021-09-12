@@ -1,5 +1,4 @@
-service:
-  name: notification-service
+service: notification-service
 
 plugins:
   - serverless-bundle
@@ -11,13 +10,25 @@ provider:
   memorySize: 256
   region: eu-west-1
   stage: ${opt:stage, 'dev'}
+  lambdaHashingVersion: 20201221
   iamRoleStatements:
     - ${file(iam/sendMailIAM.yml):SendMailIAM}
+
+resources:
+  Resources:
+    MailQueue: ${file(resources/MailQueue.yml):MailQueue}
 
 functions:
   sendMail:
     handler: src/handlers/sendMail.handler
+    events:
+      - sqs:
+          arn: ${self:custom.mailQueue.arn}
+          batchSize: 1
 
 custom:
+  mailQueue:
+    name: MailQueue-${self:provider.stage}
+    arn: !GetAtt MailQueue.Arn
   bundle:
     linting: false
